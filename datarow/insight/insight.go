@@ -19,40 +19,40 @@ func Explore(ctx context.Context, db *simpledb.SimpleDB, table string) (*analysi
 type Insight struct{}
 
 func (i *Insight) Explore(ctx context.Context, db *simpledb.SimpleDB, table string) (*analysis.Analysis, error) {
-	return i.analyse(ctx, db, table)
+	return i.analyze(ctx, db, table)
 }
 
-func (i *Insight) analyse(ctx context.Context, db *simpledb.SimpleDB, table string) (*analysis.Analysis, error) {
-	cs, err := db.GetTableColumnsSchema(ctx, table)
+func (i *Insight) analyze(ctx context.Context, db *simpledb.SimpleDB, table string) (*analysis.Analysis, error) {
+	dbColumns, err := db.GetTableColumnsSchema(ctx, table)
 	if err != nil {
 		return nil, err
 	}
 
-	tableAly, err := i.analyseTable(db, table)
+	tableAnalysis, err := i.analyzeTable(db, table)
 	if err != nil {
 		return nil, err
 	}
 
-	columnsSchema := schema.NewColumnsFromsimpledb(cs)
-	columnsAly, err := i.analyseColumns(db, tableAly, columnsSchema)
+	columnsSchema := schema.NewColumnsFromSimpleDB(dbColumns)
+	columnsAnalysis, err := i.analyzeColumns(db, tableAnalysis, columnsSchema)
 	if err != nil {
 		return nil, err
 	}
 	a := analysis.NewAnalysis()
-	a.Table = tableAly
+	a.Table = tableAnalysis
 
-	for _, ca := range columnsAly {
-		a.Columns[ca.Column.Name] = ca
+	for _, columnAnalysis := range columnsAnalysis {
+		a.Columns[columnAnalysis.Name] = columnAnalysis
 	}
 
-	for _, c := range cs {
-		a.FieldsName = append(a.FieldsName, c.Name)
+	for _, c := range dbColumns {
+		a.FieldNames = append(a.FieldNames, c.Name)
 	}
 
 	return a, nil
 }
 
-func (i *Insight) analyseTable(db *simpledb.SimpleDB, table string) (*analysis.Table, error) {
+func (i *Insight) analyzeTable(db *simpledb.SimpleDB, table string) (*analysis.Table, error) {
 	ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
 	defer cancel()
 
@@ -67,7 +67,7 @@ func (i *Insight) analyseTable(db *simpledb.SimpleDB, table string) (*analysis.T
 	}, nil
 }
 
-func (i *Insight) analyseColumns(db *simpledb.SimpleDB, tableAly *analysis.Table, columns schema.Columns) ([]analysis.Column, error) {
+func (i *Insight) analyzeColumns(db *simpledb.SimpleDB, tableAnalysis *analysis.Table, columns schema.Columns) ([]analysis.Column, error) {
 	var fields []string
 
 	fields = append(fields, "COUNT(*) AS 'amount'")
@@ -92,44 +92,44 @@ func (i *Insight) analyseColumns(db *simpledb.SimpleDB, tableAly *analysis.Table
 		)
 	}
 
-	var retRows []map[string]any
-	sql := fmt.Sprintf("SELECT %s FROM `%s`", strings.Join(fields, ","), tableAly.Table.Name)
-	err := db.GormDB().Raw(sql).Scan(&retRows).Error
+	var rows []map[string]any
+	sql := fmt.Sprintf("SELECT %s FROM `%s`", strings.Join(fields, ","), tableAnalysis.Name)
+	err := db.GormDB().Raw(sql).Scan(&rows).Error
 	if err != nil {
 		return nil, err
 	}
 
-	ret := retRows[0]
+	row := rows[0]
 
-	var columnsAly []analysis.Column
+	var columnsAnalysis []analysis.Column
 	for _, column := range columns {
-		ca := analysis.Column{
+		columnAnalysis := analysis.Column{
 			Column: column,
-			Amount: tableAly.Amount,
+			Amount: tableAnalysis.Amount,
 		}
-		err = i.toNum(ret, column.Name, "distinct", &ca.Distinct)
+		err = i.toInt(row, column.Name, "distinct", &columnAnalysis.Distinct)
 		if err != nil {
 			return nil, err
 		}
 
-		err = i.toNum(ret, column.Name, "empty", &ca.Empty)
+		err = i.toInt(row, column.Name, "empty", &columnAnalysis.Empty)
 		if err != nil {
 			return nil, err
 		}
 
-		err = i.toNum(ret, column.Name, "null", &ca.Null)
+		err = i.toInt(row, column.Name, "null", &columnAnalysis.Null)
 		if err != nil {
 			return nil, err
 		}
 
-		columnsAly = append(columnsAly, ca)
+		columnsAnalysis = append(columnsAnalysis, columnAnalysis)
 	}
 
-	return columnsAly, nil
+	return columnsAnalysis, nil
 }
 
-func (i *Insight) toNum(ret map[string]any, name, suffix string, value *int) error {
-	if v, ok := ret[name+"_"+suffix]; ok {
+func (i *Insight) toInt(row map[string]any, name, suffix string, value *int) error {
+	if v, ok := row[name+"_"+suffix]; ok {
 		var err error
 		var n int
 		if v == nil {
@@ -152,7 +152,7 @@ func (i *Insight) toNum(ret map[string]any, name, suffix string, value *int) err
 		case float64:
 			n = int(v.(float64))
 		default:
-			return fmt.Errorf("toNum: unknown type %T", v)
+			return fmt.Errorf("toInt: unknown type %T", v)
 		}
 
 		*value = n

@@ -13,7 +13,7 @@ import (
 )
 
 var simpleDB *simpledb.SimpleDB
-var gromDB *gorm.DB
+var gormDB *gorm.DB
 
 func TestInsight(t *testing.T) {
 
@@ -21,7 +21,7 @@ func TestInsight(t *testing.T) {
 	fmt.Printf("%-16s|\n", "中文字段1 [varchar]:")
 
 	var err error
-	simpleDB, gromDB, err = simpledb.NewMySQLGorm("test:Test123$@tcp(127.0.0.1:3306)/test")
+	simpleDB, gormDB, err = simpledb.NewMySQLGorm("test:Test123$@tcp(127.0.0.1:3306)/test")
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -54,7 +54,7 @@ func TestInsight(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	fmt.Println(strings.Join(d.DifferenceToStrings(), "\n"))
+	fmt.Println(strings.Join(d.Differences(), "\n"))
 }
 
 func build() error {
@@ -81,7 +81,7 @@ func build() error {
 		"PRIMARY KEY (`id`)" +
 		") ENGINE=MyISAM DEFAULT CHARSET=utf8mb4;"
 
-	err = gromDB.Exec(fmt.Sprintf(sql, "diff")).Error
+	err = gormDB.Exec(fmt.Sprintf(sql, "diff")).Error
 	if err != nil {
 		return err
 	}
@@ -96,7 +96,7 @@ func build() error {
 		"PRIMARY KEY (`id`)" +
 		") ENGINE=MyISAM DEFAULT CHARSET=utf8mb4;"
 
-	err = gromDB.Exec(fmt.Sprintf(sql, "diff_copy")).Error
+	err = gormDB.Exec(fmt.Sprintf(sql, "diff_copy")).Error
 	if err != nil {
 		return err
 	}

@@ -7,15 +7,15 @@ import (
 )
 
 func Diff(ctx context.Context, left, right diff.Source) (*diff.Differ, error) {
-	leftAly, err := Explore(ctx, left.DB, left.Name)
+	leftAnalysis, err := Explore(ctx, left.DB, left.Name)
 	if err != nil {
 		return nil, err
 	}
 
-	rightAly, err := Explore(ctx, right.DB, right.Name)
+	rightAnalysis, err := Explore(ctx, right.DB, right.Name)
 	if err != nil {
 		return nil, err
 	}
 
-	return diff.Diff(leftAly, rightAly), nil
+	return diff.Diff(leftAnalysis, rightAnalysis), nil
 }

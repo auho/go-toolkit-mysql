@@ -5,6 +5,6 @@ import (
 )
 
 type Table struct {
-	Table  schema.Table
+	schema.Table
 	Amount int
 }

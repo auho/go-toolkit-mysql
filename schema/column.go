@@ -13,37 +13,37 @@ type Column struct {
 	DataType  DataType
 }
 
-type ColumnShow struct {
+type ColumnDisplay struct {
 	Column
 
-	NameZhLen     int
-	NameShowWidth int
-	FieldTypeLen  int
+	NameZhLen        int
+	NameDisplayWidth int
+	FieldTypeLen     int
 }
 
-func NewColumnShow(c Column) ColumnShow {
-	cs := ColumnShow{
+func NewColumnDisplay(c Column) ColumnDisplay {
+	cs := ColumnDisplay{
 		Column: c,
 	}
 
-	cs.zhShowWidth()
+	cs.calculateDisplayWidth()
 
 	return cs
 }
 
-func (c *ColumnShow) zhShowWidth() {
+func (c *ColumnDisplay) calculateDisplayWidth() {
 	byteLen := len(c.Name)
 	runeLen := utf8.RuneCountInString(c.Name)
 	zhLen := (byteLen - runeLen) / 2
 
 	c.NameZhLen = zhLen
-	c.NameShowWidth = runeLen + zhLen
+	c.NameDisplayWidth = runeLen + zhLen
 	c.FieldTypeLen = len(c.FieldType)
 }
 
 type Columns []Column
 
-func NewColumnsFromsimpledb(columns []schema.Column) Columns {
+func NewColumnsFromSimpleDB(columns []schema.Column) Columns {
 	var cs Columns
 	for _, c := range columns {
 		ft := FieldType(strings.ToLower(c.FieldType))
@@ -59,10 +59,10 @@ func NewColumnsFromsimpledb(columns []schema.Column) Columns {
 	return cs
 }
 
-func (c Columns) ToColumnShow() []ColumnShow {
-	var cs []ColumnShow
+func (c Columns) ToColumnDisplay() []ColumnDisplay {
+	var cs []ColumnDisplay
 	for _, c := range c {
-		cs = append(cs, NewColumnShow(c))
+		cs = append(cs, NewColumnDisplay(c))
 	}
 
 	return cs

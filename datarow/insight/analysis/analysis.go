@@ -10,7 +10,7 @@ import (
 
 type Analysis struct {
 	Table      *Table
-	FieldsName []string
+	FieldNames []string
 	Columns    map[string]Column
 }
 
@@ -24,15 +24,15 @@ func NewAnalysis() *Analysis {
 func (a *Analysis) ToStrings() []string {
 	var ss []string
 
-	ss = append(ss, fmt.Sprintf("table[%s]: %d", a.Table.Table.Name, a.Table.Amount))
+	ss = append(ss, fmt.Sprintf("table[%s]: %d", a.Table.Name, a.Table.Amount))
 
-	columnsShow, maxColumnShow := a.GetColumnsShow()
-	maxFieldLen := maxColumnShow.NameShowWidth + 1
+	columnsDisplay, maxColumnDisplay := a.ColumnsDisplay()
+	maxFieldLen := maxColumnDisplay.NameDisplayWidth + 1
 
 	format := fmt.Sprintf("%%-%ds %%-9s %%5s  %%-9s %%-9s", maxFieldLen)
 	ss = append(ss, fmt.Sprintf(format, "COLUMN", "TYPE", "FLAG", "IS-EMPTY", "IS-NULL"))
 
-	for k, fieldName := range a.FieldsName {
+	for k, fieldName := range a.FieldNames {
 		column := a.Columns[fieldName]
 
 		warning := ""
@@ -40,28 +40,28 @@ func (a *Analysis) ToStrings() []string {
 			warning = fmt.Sprintf("❗️")
 		}
 
-		format = fmt.Sprintf("%%-%ds %%-9s %%5s  %%-9d %%-9d ", maxFieldLen-columnsShow[k].NameZhLen)
-		ss = append(ss, fmt.Sprintf(format, column.Column.Name, column.Column.FieldType, warning, column.Empty, column.Null))
+		format = fmt.Sprintf("%%-%ds %%-9s %%5s  %%-9d %%-9d ", maxFieldLen-columnsDisplay[k].NameZhLen)
+		ss = append(ss, fmt.Sprintf(format, column.Name, column.FieldType, warning, column.Empty, column.Null))
 	}
 
 	ss = append(ss, "")
 	return ss
 }
 
-// GetColumnsShow
-// columns show
-// max filed show width column show
-func (a *Analysis) GetColumnsShow() ([]schema.ColumnShow, schema.ColumnShow) {
-	var columnsShow []schema.ColumnShow
-	for _, fn := range a.FieldsName {
-		columnsShow = append(columnsShow, schema.NewColumnShow(a.Columns[fn].Column))
+// ColumnsDisplay
+// columns display
+// max field display width column display
+func (a *Analysis) ColumnsDisplay() ([]schema.ColumnDisplay, schema.ColumnDisplay) {
+	var columnsDisplay []schema.ColumnDisplay
+	for _, fn := range a.FieldNames {
+		columnsDisplay = append(columnsDisplay, schema.NewColumnDisplay(a.Columns[fn].Column))
 	}
 
-	if len(columnsShow) == 0 {
-		return columnsShow, schema.ColumnShow{}
+	if len(columnsDisplay) == 0 {
+		return columnsDisplay, schema.ColumnDisplay{}
 	}
 
-	return columnsShow, slices.MaxFunc(columnsShow, func(i, j schema.ColumnShow) int {
-		return cmp.Compare(i.NameShowWidth, j.NameShowWidth)
+	return columnsDisplay, slices.MaxFunc(columnsDisplay, func(i, j schema.ColumnDisplay) int {
+		return cmp.Compare(i.NameDisplayWidth, j.NameDisplayWidth)
 	})
 }
