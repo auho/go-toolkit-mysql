@@ -12,10 +12,6 @@ type Analysis struct {
 	Table      *Table
 	FieldsName []string
 	Columns    map[string]Column
-	FieldWidth []struct {
-		width int
-		zhLen int
-	}
 }
 
 func NewAnalysis() *Analysis {
@@ -31,12 +27,12 @@ func (a *Analysis) ToStrings() []string {
 	ss = append(ss, fmt.Sprintf("table[%s]: %d", a.Table.Table.Name, a.Table.Amount))
 
 	columnsShow, maxColumnShow := a.GetColumnsShow()
-	_maxFieldLen := maxColumnShow.NameShowWidth + 1
+	maxFieldLen := maxColumnShow.NameShowWidth + 1
 
-	_format := fmt.Sprintf("%%-%ds %%-9s %%5s  %%-9s %%-9s", _maxFieldLen)
-	ss = append(ss, fmt.Sprintf(_format, "COLUMN", "TYPE", "FLAG", "IS-EMPTY", "IS-NULL"))
+	format := fmt.Sprintf("%%-%ds %%-9s %%5s  %%-9s %%-9s", maxFieldLen)
+	ss = append(ss, fmt.Sprintf(format, "COLUMN", "TYPE", "FLAG", "IS-EMPTY", "IS-NULL"))
 
-	for _k, fieldName := range a.FieldsName {
+	for k, fieldName := range a.FieldsName {
 		column := a.Columns[fieldName]
 
 		warning := ""
@@ -44,8 +40,8 @@ func (a *Analysis) ToStrings() []string {
 			warning = fmt.Sprintf("❗️")
 		}
 
-		_format = fmt.Sprintf("%%-%ds %%-9s %%5s  %%-9d %%-9d ", _maxFieldLen-columnsShow[_k].NameZhLen)
-		ss = append(ss, fmt.Sprintf(_format, column.Column.Name, column.Column.FieldType, warning, column.Empty, column.Null))
+		format = fmt.Sprintf("%%-%ds %%-9s %%5s  %%-9d %%-9d ", maxFieldLen-columnsShow[k].NameZhLen)
+		ss = append(ss, fmt.Sprintf(format, column.Column.Name, column.Column.FieldType, warning, column.Empty, column.Null))
 	}
 
 	ss = append(ss, "")
@@ -57,8 +53,12 @@ func (a *Analysis) ToStrings() []string {
 // max filed show width column show
 func (a *Analysis) GetColumnsShow() ([]schema.ColumnShow, schema.ColumnShow) {
 	var columnsShow []schema.ColumnShow
-	for _, _fn := range a.FieldsName {
-		columnsShow = append(columnsShow, schema.NewColumnShow(a.Columns[_fn].Column))
+	for _, fn := range a.FieldsName {
+		columnsShow = append(columnsShow, schema.NewColumnShow(a.Columns[fn].Column))
+	}
+
+	if len(columnsShow) == 0 {
+		return columnsShow, schema.ColumnShow{}
 	}
 
 	return columnsShow, slices.MaxFunc(columnsShow, func(i, j schema.ColumnShow) int {

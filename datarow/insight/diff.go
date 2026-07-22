@@ -6,19 +6,16 @@ import (
 	"github.com/auho/go-toolkit-mysql/datarow/insight/diff"
 )
 
-func Diff(ctx context.Context, tables ...diff.Source) (*diff.Differ, error) {
-	_left := tables[0]
-	_right := tables[1]
-
-	_leftAly, err := Explore(ctx, _left.DB, _left.Name)
+func Diff(ctx context.Context, left, right diff.Source) (*diff.Differ, error) {
+	leftAly, err := Explore(ctx, left.DB, left.Name)
 	if err != nil {
 		return nil, err
 	}
 
-	_rightAly, err := Explore(ctx, _right.DB, _right.Name)
+	rightAly, err := Explore(ctx, right.DB, right.Name)
 	if err != nil {
 		return nil, err
 	}
 
-	return diff.Diff(_leftAly, _rightAly), nil
+	return diff.Diff(leftAly, rightAly), nil
 }

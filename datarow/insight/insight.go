@@ -23,7 +23,7 @@ func (i *Insight) Explore(ctx context.Context, db *simpledb.SimpleDB, table stri
 }
 
 func (i *Insight) analyse(ctx context.Context, db *simpledb.SimpleDB, table string) (*analysis.Analysis, error) {
-	_cs, err := db.GetTableColumnsSchema(ctx, table)
+	cs, err := db.GetTableColumnsSchema(ctx, table)
 	if err != nil {
 		return nil, err
 	}
@@ -33,7 +33,7 @@ func (i *Insight) analyse(ctx context.Context, db *simpledb.SimpleDB, table stri
 		return nil, err
 	}
 
-	columnsSchema := schema.NewColumnsFromsimpledb(_cs)
+	columnsSchema := schema.NewColumnsFromsimpledb(cs)
 	columnsAly, err := i.analyseColumns(db, tableAly, columnsSchema)
 	if err != nil {
 		return nil, err
@@ -41,12 +41,12 @@ func (i *Insight) analyse(ctx context.Context, db *simpledb.SimpleDB, table stri
 	a := analysis.NewAnalysis()
 	a.Table = tableAly
 
-	for _, _ca := range columnsAly {
-		a.Columns[_ca.Column.Name] = _ca
+	for _, ca := range columnsAly {
+		a.Columns[ca.Column.Name] = ca
 	}
 
-	for _, _c := range _cs {
-		a.FieldsName = append(a.FieldsName, _c.Name)
+	for _, c := range cs {
+		a.FieldsName = append(a.FieldsName, c.Name)
 	}
 
 	return a, nil
@@ -64,7 +64,7 @@ func (i *Insight) analyseTable(db *simpledb.SimpleDB, table string) (*analysis.T
 	return &analysis.Table{
 		Table:  schema.Table{Name: table},
 		Amount: amount,
-	}, err
+	}, nil
 }
 
 func (i *Insight) analyseColumns(db *simpledb.SimpleDB, tableAly *analysis.Table, columns schema.Columns) ([]analysis.Column, error) {
@@ -103,26 +103,26 @@ func (i *Insight) analyseColumns(db *simpledb.SimpleDB, tableAly *analysis.Table
 
 	var columnsAly []analysis.Column
 	for _, column := range columns {
-		_ca := analysis.Column{
+		ca := analysis.Column{
 			Column: column,
 			Amount: tableAly.Amount,
 		}
-		err = i.toNum(ret, column.Name, "distinct", &_ca.Distinct)
+		err = i.toNum(ret, column.Name, "distinct", &ca.Distinct)
 		if err != nil {
 			return nil, err
 		}
 
-		err = i.toNum(ret, column.Name, "empty", &_ca.Empty)
+		err = i.toNum(ret, column.Name, "empty", &ca.Empty)
 		if err != nil {
 			return nil, err
 		}
 
-		err = i.toNum(ret, column.Name, "null", &_ca.Null)
+		err = i.toNum(ret, column.Name, "null", &ca.Null)
 		if err != nil {
 			return nil, err
 		}
 
-		columnsAly = append(columnsAly, _ca)
+		columnsAly = append(columnsAly, ca)
 	}
 
 	return columnsAly, nil
@@ -131,24 +131,31 @@ func (i *Insight) analyseColumns(db *simpledb.SimpleDB, tableAly *analysis.Table
 func (i *Insight) toNum(ret map[string]any, name, suffix string, value *int) error {
 	if v, ok := ret[name+"_"+suffix]; ok {
 		var err error
-		var _v int
+		var n int
 		if v == nil {
 			v = "0"
 		}
 
 		switch v.(type) {
 		case string:
-			_v, err = strconv.Atoi(v.(string))
+			n, err = strconv.Atoi(v.(string))
 			if err != nil {
 				return err
 			}
 		case int64:
-			_v = int(v.(int64))
+			n = int(v.(int64))
+		case []byte:
+			n, err = strconv.Atoi(string(v.([]byte)))
+			if err != nil {
+				return err
+			}
+		case float64:
+			n = int(v.(float64))
 		default:
-			panic("unknown type")
+			return fmt.Errorf("toNum: unknown type %T", v)
 		}
 
-		*value = _v
+		*value = n
 	}
 
 	return nil

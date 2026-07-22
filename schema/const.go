@@ -16,29 +16,29 @@ const (
 )
 
 const (
-	FieldTypeBit       FieldType = "bit"       //
-	FieldTypeTinyint             = "tinyint"   //
-	FieldTypeBool                = "bool"      //
-	FieldTypeBoolean             = "boolean"   //
-	FieldTypeSmallint            = "smallint"  //
-	FieldTypeMediumint           = "mediumint" //
-	FieldTypeInt                 = "int"       //
-	FieldTypeInteger             = "integer"   //
-	FieldTypeBigint              = "bigint"    //
-	FieldTypeDecimal             = "decimal"   //
-	FieldTypeFloat               = "float"     //
-	FieldTypeDouble              = "double"    //
-	FieldTypeDate                = "date"      // '0000-00-00'
-	FieldTypeTime                = "time"      // '00:00:00'
-	FieldTypeDatetime            = "datetime"  // '0000-00-00 00:00:00'
-	FieldTypeTimestamp           = "timestamp" // '0000-00-00 00:00:00'
-	FieldTypeYear                = "year"      // 0000
-	FieldTypeChar                = "char"      //
-	FieldTypeVarchar             = "varchar"   //
-	FieldTypeBinary              = "binary"    //
-	FieldTypeVarbinary           = "varbinary" //
-	FieldTypeBlob                = "blob"      //
-	FieldTypeText                = "text"      //
-	FieldTypeEnum                = "enum"      //
-	FieldTypeSet                 = "set"       //
+	FieldTypeBit       FieldType = "bit"
+	FieldTypeTinyint   FieldType = "tinyint"
+	FieldTypeBool      FieldType = "bool"
+	FieldTypeBoolean   FieldType = "boolean"
+	FieldTypeSmallint  FieldType = "smallint"
+	FieldTypeMediumint FieldType = "mediumint"
+	FieldTypeInt       FieldType = "int"
+	FieldTypeInteger   FieldType = "integer"
+	FieldTypeBigint    FieldType = "bigint"
+	FieldTypeDecimal   FieldType = "decimal"
+	FieldTypeFloat     FieldType = "float"
+	FieldTypeDouble    FieldType = "double"
+	FieldTypeDate      FieldType = "date"      // '0000-00-00'
+	FieldTypeTime      FieldType = "time"      // '00:00:00'
+	FieldTypeDatetime  FieldType = "datetime"  // '0000-00-00 00:00:00'
+	FieldTypeTimestamp FieldType = "timestamp" // '0000-00-00 00:00:00'
+	FieldTypeYear      FieldType = "year"      // 0000
+	FieldTypeChar      FieldType = "char"
+	FieldTypeVarchar   FieldType = "varchar"
+	FieldTypeBinary    FieldType = "binary"
+	FieldTypeVarbinary FieldType = "varbinary"
+	FieldTypeBlob      FieldType = "blob"
+	FieldTypeText      FieldType = "text"
+	FieldTypeEnum      FieldType = "enum"
+	FieldTypeSet       FieldType = "set"
 )

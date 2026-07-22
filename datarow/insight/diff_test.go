@@ -12,21 +12,21 @@ import (
 	"gorm.io/gorm"
 )
 
-var _simpleDB *simpledb.SimpleDB
-var _gromDB *gorm.DB
+var simpleDB *simpledb.SimpleDB
+var gromDB *gorm.DB
 
 func TestInsight(t *testing.T) {
 
-	fmt.Println(fmt.Sprintf("%-20s|", "d1 [varchar]:"))
-	fmt.Println(fmt.Sprintf("%-16s|", "中文字段1 [varchar]:"))
+	fmt.Printf("%-20s|\n", "d1 [varchar]:")
+	fmt.Printf("%-16s|\n", "中文字段1 [varchar]:")
 
 	var err error
-	_simpleDB, _gromDB, err = simpledb.NewMySQLGorm("test:Test123$@tcp(127.0.0.1:3306)/test")
+	simpleDB, gromDB, err = simpledb.NewMySQLGorm("test:Test123$@tcp(127.0.0.1:3306)/test")
 	if err != nil {
 		t.Fatal(err)
 	}
 
-	err = _build()
+	err = build()
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -34,21 +34,21 @@ func TestInsight(t *testing.T) {
 	ctx, cancel := context.WithTimeout(context.Background(), time.Second*10)
 	defer cancel()
 
-	_as, err := Explore(ctx, _simpleDB, "diff")
+	as, err := Explore(ctx, simpleDB, "diff")
 	if err != nil {
 		t.Fatal(err)
 	}
 
-	for _, _s := range _as.ToStrings() {
-		fmt.Println(_s)
+	for _, s := range as.ToStrings() {
+		fmt.Println(s)
 	}
 
 	d, err := Diff(ctx, diff.Source{
 		Name: "diff",
-		DB:   _simpleDB,
+		DB:   simpleDB,
 	}, diff.Source{
 		Name: "diff_copy",
-		DB:   _simpleDB,
+		DB:   simpleDB,
 	})
 	if err != nil {
 		t.Fatal(err)
@@ -57,21 +57,21 @@ func TestInsight(t *testing.T) {
 	fmt.Println(strings.Join(d.DifferenceToStrings(), "\n"))
 }
 
-func _build() error {
+func build() error {
 	ctx, cancel := context.WithTimeout(context.Background(), time.Second*10)
 	defer cancel()
 
-	err := _simpleDB.Drop(ctx, "diff")
+	err := simpleDB.Drop(ctx, "diff")
 	if err != nil {
 		return err
 	}
 
-	err = _simpleDB.Drop(ctx, "diff_copy")
+	err = simpleDB.Drop(ctx, "diff_copy")
 	if err != nil {
 		return err
 	}
 
-	_sql := "CREATE TABLE IF NOT EXISTS `%s` (" +
+	sql := "CREATE TABLE IF NOT EXISTS `%s` (" +
 		"`id` int(11) unsigned NOT NULL AUTO_INCREMENT," +
 		"`i` int(11) NOT NULL DEFAULT '0'," +
 		"`s` varchar(20) NOT NULL DEFAULT ''," +
@@ -81,12 +81,12 @@ func _build() error {
 		"PRIMARY KEY (`id`)" +
 		") ENGINE=MyISAM DEFAULT CHARSET=utf8mb4;"
 
-	err = _gromDB.Exec(fmt.Sprintf(_sql, "diff")).Error
+	err = gromDB.Exec(fmt.Sprintf(sql, "diff")).Error
 	if err != nil {
 		return err
 	}
 
-	_sql = "CREATE TABLE IF NOT EXISTS `%s` (" +
+	sql = "CREATE TABLE IF NOT EXISTS `%s` (" +
 		"`id` int(11) unsigned NOT NULL AUTO_INCREMENT," +
 		"`i` int(11) NOT NULL DEFAULT '0'," +
 		"`s` varchar(20) NOT NULL DEFAULT ''," +
@@ -96,12 +96,12 @@ func _build() error {
 		"PRIMARY KEY (`id`)" +
 		") ENGINE=MyISAM DEFAULT CHARSET=utf8mb4;"
 
-	err = _gromDB.Exec(fmt.Sprintf(_sql, "diff_copy")).Error
+	err = gromDB.Exec(fmt.Sprintf(sql, "diff_copy")).Error
 	if err != nil {
 		return err
 	}
 
-	err = _simpleDB.BulkInsertFromSliceSlice(ctx,
+	err = simpleDB.BulkInsertFromSliceSlice(ctx,
 		"diff",
 		[]string{"i", "s", "s_null", "d1"},
 		[][]any{
@@ -119,7 +119,7 @@ func _build() error {
 		return err
 	}
 
-	err = _simpleDB.BulkInsertFromSliceSlice(ctx,
+	err = simpleDB.BulkInsertFromSliceSlice(ctx,
 		"diff_copy",
 		[]string{"i", "s", "s_null", "d2"},
 		[][]any{

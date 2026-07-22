@@ -32,12 +32,12 @@ func NewColumnShow(c Column) ColumnShow {
 }
 
 func (c *ColumnShow) zhShowWidth() {
-	_len := len(c.Name)
-	_runeLen := utf8.RuneCountInString(c.Name)
-	_zhLen := (_len - _runeLen) / 2
+	byteLen := len(c.Name)
+	runeLen := utf8.RuneCountInString(c.Name)
+	zhLen := (byteLen - runeLen) / 2
 
-	c.NameZhLen = _zhLen
-	c.NameShowWidth = _runeLen + _zhLen
+	c.NameZhLen = zhLen
+	c.NameShowWidth = runeLen + zhLen
 	c.FieldTypeLen = len(c.FieldType)
 }
 
@@ -45,12 +45,12 @@ type Columns []Column
 
 func NewColumnsFromsimpledb(columns []schema.Column) Columns {
 	var cs Columns
-	for _, _c := range columns {
-		ft := FieldType(strings.ToLower(_c.FieldType))
+	for _, c := range columns {
+		ft := FieldType(strings.ToLower(c.FieldType))
 		nc := Column{
-			Name:      _c.Name,
+			Name:      c.Name,
 			FieldType: ft,
-			DataType:  FileTypeToDataType(ft),
+			DataType:  FieldTypeToDataType(ft),
 		}
 
 		cs = append(cs, nc)
@@ -61,8 +61,8 @@ func NewColumnsFromsimpledb(columns []schema.Column) Columns {
 
 func (c Columns) ToColumnShow() []ColumnShow {
 	var cs []ColumnShow
-	for _, _c := range c {
-		cs = append(cs, NewColumnShow(_c))
+	for _, c := range c {
+		cs = append(cs, NewColumnShow(c))
 	}
 
 	return cs
