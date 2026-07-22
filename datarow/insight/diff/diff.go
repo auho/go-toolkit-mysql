@@ -3,7 +3,7 @@ package diff
 import (
 	"fmt"
 
-	"github.com/auho/go-toolkit/v2/mysql/datarow/insight/analysis"
+	"github.com/auho/go-toolkit-mysql/datarow/insight/analysis"
 )
 
 func Diff(as ...*analysis.Analysis) *Differ {

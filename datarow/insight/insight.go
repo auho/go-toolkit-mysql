@@ -1,27 +1,29 @@
 package insight
 
 import (
+	"context"
 	"fmt"
 	"strconv"
 	"strings"
+	"time"
 
-	simpleDb "github.com/auho/go-simple-db/v2"
-	"github.com/auho/go-toolkit/v2/mysql/datarow/insight/analysis"
-	"github.com/auho/go-toolkit/v2/mysql/schema"
+	simpledb "github.com/auho/go-simple-db/v3"
+	"github.com/auho/go-toolkit-mysql/datarow/insight/analysis"
+	"github.com/auho/go-toolkit-mysql/schema"
 )
 
-func Explore(db *simpleDb.SimpleDB, table string) (*analysis.Analysis, error) {
-	return (&Insight{}).Explore(db, table)
+func Explore(ctx context.Context, db *simpledb.SimpleDB, table string) (*analysis.Analysis, error) {
+	return (&Insight{}).Explore(ctx, db, table)
 }
 
 type Insight struct{}
 
-func (i *Insight) Explore(db *simpleDb.SimpleDB, table string) (*analysis.Analysis, error) {
-	return i.analyse(db, table)
+func (i *Insight) Explore(ctx context.Context, db *simpledb.SimpleDB, table string) (*analysis.Analysis, error) {
+	return i.analyse(ctx, db, table)
 }
 
-func (i *Insight) analyse(db *simpleDb.SimpleDB, table string) (*analysis.Analysis, error) {
-	_cs, err := db.GetTableColumnsSchema(table)
+func (i *Insight) analyse(ctx context.Context, db *simpledb.SimpleDB, table string) (*analysis.Analysis, error) {
+	_cs, err := db.GetTableColumnsSchema(ctx, table)
 	if err != nil {
 		return nil, err
 	}
@@ -31,7 +33,7 @@ func (i *Insight) analyse(db *simpleDb.SimpleDB, table string) (*analysis.Analys
 		return nil, err
 	}
 
-	columnsSchema := schema.NewColumnsFromSimpleDb(_cs)
+	columnsSchema := schema.NewColumnsFromsimpledb(_cs)
 	columnsAly, err := i.analyseColumns(db, tableAly, columnsSchema)
 	if err != nil {
 		return nil, err
@@ -50,8 +52,11 @@ func (i *Insight) analyse(db *simpleDb.SimpleDB, table string) (*analysis.Analys
 	return a, nil
 }
 
-func (i *Insight) analyseTable(db *simpleDb.SimpleDB, table string) (*analysis.Table, error) {
-	amount, err := db.TableAmount(table)
+func (i *Insight) analyseTable(db *simpledb.SimpleDB, table string) (*analysis.Table, error) {
+	ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
+	defer cancel()
+
+	amount, err := db.RowCount(ctx, table)
 	if err != nil {
 		return nil, err
 	}
@@ -62,7 +67,7 @@ func (i *Insight) analyseTable(db *simpleDb.SimpleDB, table string) (*analysis.T
 	}, err
 }
 
-func (i *Insight) analyseColumns(db *simpleDb.SimpleDB, tableAly *analysis.Table, columns schema.Columns) ([]analysis.Column, error) {
+func (i *Insight) analyseColumns(db *simpledb.SimpleDB, tableAly *analysis.Table, columns schema.Columns) ([]analysis.Column, error) {
 	var fields []string
 
 	fields = append(fields, "COUNT(*) AS 'amount'")
@@ -89,7 +94,7 @@ func (i *Insight) analyseColumns(db *simpleDb.SimpleDB, tableAly *analysis.Table
 
 	var retRows []map[string]any
 	sql := fmt.Sprintf("SELECT %s FROM `%s`", strings.Join(fields, ","), tableAly.Table.Name)
-	err := db.Raw(sql).Scan(&retRows).Error
+	err := db.GormDB().Raw(sql).Scan(&retRows).Error
 	if err != nil {
 		return nil, err
 	}

@@ -1,8 +1,6 @@
 package analysis
 
-import (
-	"github.com/auho/go-toolkit/v2/mysql/schema"
-)
+import "github.com/auho/go-toolkit-mysql/schema"
 
 type Column struct {
 	Column   schema.Column

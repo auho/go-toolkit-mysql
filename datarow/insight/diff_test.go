@@ -1,15 +1,19 @@
 package insight
 
 import (
+	"context"
 	"fmt"
 	"strings"
 	"testing"
+	"time"
 
-	simpleDb "github.com/auho/go-simple-db/v2"
-	"github.com/auho/go-toolkit/v2/mysql/datarow/insight/diff"
+	simpledb "github.com/auho/go-simple-db/v3"
+	"github.com/auho/go-toolkit-mysql/datarow/insight/diff"
+	"gorm.io/gorm"
 )
 
-var _db *simpleDb.SimpleDB
+var _simpleDB *simpledb.SimpleDB
+var _gromDB *gorm.DB
 
 func TestInsight(t *testing.T) {
 
@@ -17,7 +21,7 @@ func TestInsight(t *testing.T) {
 	fmt.Println(fmt.Sprintf("%-16s|", "中文字段1 [varchar]:"))
 
 	var err error
-	_db, err = simpleDb.NewMysql("test:Test123$@tcp(127.0.0.1:3306)/test")
+	_simpleDB, _gromDB, err = simpledb.NewMySQLGorm("test:Test123$@tcp(127.0.0.1:3306)/test")
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -27,7 +31,10 @@ func TestInsight(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	_as, err := Explore(_db, "diff")
+	ctx, cancel := context.WithTimeout(context.Background(), time.Second*10)
+	defer cancel()
+
+	_as, err := Explore(ctx, _simpleDB, "diff")
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -36,12 +43,12 @@ func TestInsight(t *testing.T) {
 		fmt.Println(_s)
 	}
 
-	d, err := Diff(diff.Source{
+	d, err := Diff(ctx, diff.Source{
 		Name: "diff",
-		DB:   _db,
+		DB:   _simpleDB,
 	}, diff.Source{
 		Name: "diff_copy",
-		DB:   _db,
+		DB:   _simpleDB,
 	})
 	if err != nil {
 		t.Fatal(err)
@@ -51,13 +58,15 @@ func TestInsight(t *testing.T) {
 }
 
 func _build() error {
-	var err error
+	ctx, cancel := context.WithTimeout(context.Background(), time.Second*10)
+	defer cancel()
 
-	err = _db.Drop("diff")
+	err := _simpleDB.Drop(ctx, "diff")
 	if err != nil {
 		return err
 	}
-	err = _db.Drop("diff_copy")
+
+	err = _simpleDB.Drop(ctx, "diff_copy")
 	if err != nil {
 		return err
 	}
@@ -72,7 +81,7 @@ func _build() error {
 		"PRIMARY KEY (`id`)" +
 		") ENGINE=MyISAM DEFAULT CHARSET=utf8mb4;"
 
-	err = _db.Exec(fmt.Sprintf(_sql, "diff")).Error
+	err = _gromDB.Exec(fmt.Sprintf(_sql, "diff")).Error
 	if err != nil {
 		return err
 	}
@@ -87,12 +96,12 @@ func _build() error {
 		"PRIMARY KEY (`id`)" +
 		") ENGINE=MyISAM DEFAULT CHARSET=utf8mb4;"
 
-	err = _db.Exec(fmt.Sprintf(_sql, "diff_copy")).Error
+	err = _gromDB.Exec(fmt.Sprintf(_sql, "diff_copy")).Error
 	if err != nil {
 		return err
 	}
 
-	err = _db.BulkInsertFromSliceSlice(
+	err = _simpleDB.BulkInsertFromSliceSlice(ctx,
 		"diff",
 		[]string{"i", "s", "s_null", "d1"},
 		[][]any{
@@ -110,7 +119,7 @@ func _build() error {
 		return err
 	}
 
-	err = _db.BulkInsertFromSliceSlice(
+	err = _simpleDB.BulkInsertFromSliceSlice(ctx,
 		"diff_copy",
 		[]string{"i", "s", "s_null", "d2"},
 		[][]any{

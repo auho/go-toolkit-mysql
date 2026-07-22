@@ -4,7 +4,7 @@ import (
 	"strings"
 	"unicode/utf8"
 
-	"github.com/auho/go-simple-db/v2/schema"
+	"github.com/auho/go-simple-db/v3/schema"
 )
 
 type Column struct {
@@ -43,7 +43,7 @@ func (c *ColumnShow) zhShowWidth() {
 
 type Columns []Column
 
-func NewColumnsFromSimpleDb(columns []schema.Column) Columns {
+func NewColumnsFromsimpledb(columns []schema.Column) Columns {
 	var cs Columns
 	for _, _c := range columns {
 		ft := FieldType(strings.ToLower(_c.FieldType))
