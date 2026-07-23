@@ -1,3 +1,7 @@
+// Package explore profiles a MySQL table by querying its schema and computing
+// per-column statistics (row count, distinct values, empty values, and null
+// values). The Explorer struct encapsulates the database connection and
+// exposes an Analyze method that returns an analysis.Result.
 package explore
 
 import (
@@ -12,18 +16,25 @@ import (
 	"github.com/auho/go-toolkit-mysql/tableprofile/analysis"
 )
 
+// Explorer profiles MySQL tables using a SimpleDB connection.
 type Explorer struct {
 	db *simpledb.SimpleDB
 }
 
+// New creates an Explorer bound to the given database connection.
 func New(db *simpledb.SimpleDB) *Explorer {
 	return &Explorer{db: db}
 }
 
+// Analyze profiles a single table and returns the analysis Result containing
+// row count and per-column statistics.
 func (e *Explorer) Analyze(ctx context.Context, table string) (*analysis.Result, error) {
 	return e.analyze(ctx, table)
 }
 
+// analyze is the internal implementation of Analyze. It fetches the table's
+// column schema, computes table-level and column-level statistics, and
+// assembles them into an analysis.Result.
 func (e *Explorer) analyze(ctx context.Context, table string) (*analysis.Result, error) {
 	dbColumns, err := e.db.GetTableColumnsSchema(ctx, table)
 	if err != nil {
@@ -54,6 +65,8 @@ func (e *Explorer) analyze(ctx context.Context, table string) (*analysis.Result,
 	return r, nil
 }
 
+// analyzeTable queries the row count of the given table with a 10-second
+// timeout derived from the parent context.
 func (e *Explorer) analyzeTable(ctx context.Context, table string) (*analysis.Table, error) {
 	ctx, cancel := context.WithTimeout(ctx, 10*time.Second)
 	defer cancel()
@@ -69,6 +82,10 @@ func (e *Explorer) analyzeTable(ctx context.Context, table string) (*analysis.Ta
 	}, nil
 }
 
+// analyzeColumns builds and executes a single aggregate SQL query that
+// computes, for every column, the distinct count, empty count, and null count.
+// The empty-count criterion depends on the column's DataType: 0 for numeric
+// types, '' for string types.
 func (e *Explorer) analyzeColumns(tableAnalysis *analysis.Table, columns schema.Columns) ([]analysis.Column, error) {
 	var fields []string
 
@@ -130,6 +147,9 @@ func (e *Explorer) analyzeColumns(tableAnalysis *analysis.Table, columns schema.
 	return columnsAnalysis, nil
 }
 
+// toInt extracts a value keyed by "name_suffix" from a query result row and
+// converts it to int. The value may be nil (treated as 0), string, int64,
+// []byte, or float64. It is a no-op when the key is absent.
 func (e *Explorer) toInt(row map[string]any, name, suffix string, value *int) error {
 	if v, ok := row[name+"_"+suffix]; ok {
 		var err error

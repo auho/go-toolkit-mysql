@@ -1,20 +1,35 @@
+// Package schema defines MySQL column and table metadata types used across
+// the toolkit. It provides field-type classification (FieldType), a coarser
+// data-type category (DataType), and display-width calculation helpers that
+// account for multi-byte characters such as CJK ideographs.
 package schema
 
+// DataType is a coarse category that groups MySQL field types into a small
+// set of kinds useful for statistical analysis (e.g. deciding whether "empty"
+// means 0 for numbers or '' for strings).
 type DataType byte
+
+// FieldType is the raw MySQL column type as returned by the database
+// (e.g. "int", "varchar", "datetime"). Values are always lower-case.
 type FieldType string
+
+// TypeFlag is reserved for future use.
 type TypeFlag string
 
+// DataType values group MySQL field types into analysis-friendly categories.
 const (
-	DataTypeUnknown DataType = iota
-	DataTypeBool
-	DataTypeInt
-	DataTypeUint
-	DataTypeFloat
-	DataTypeString
-	DataTypeTime
-	DataTypeBytes
+	DataTypeUnknown DataType = iota // unrecognised or unsupported field type
+	DataTypeBool                    // boolean
+	DataTypeInt                     // integer types (bit, tinyint, int, bigint, ...)
+	DataTypeUint                    // unsigned integer (currently unused)
+	DataTypeFloat                   // floating-point and fixed-point types
+	DataTypeString                  // character string types
+	DataTypeTime                    // date/time types
+	DataTypeBytes                   // binary string types
 )
 
+// FieldType constants mirror the MySQL column type names. Each constant is
+// the lower-case form returned by INFORMATION_SCHEMA or SHOW COLUMNS.
 const (
 	FieldTypeBit       FieldType = "bit"
 	FieldTypeTinyint   FieldType = "tinyint"

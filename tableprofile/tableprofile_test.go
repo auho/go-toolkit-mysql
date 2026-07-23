@@ -6,135 +6,70 @@ import (
 	"strings"
 	"testing"
 	"time"
-
-	simpledb "github.com/auho/go-simple-db/v3"
-	"gorm.io/gorm"
 )
 
-var simpleDB *simpledb.SimpleDB
-var gormDB *gorm.DB
-
-func TestTableProfile(t *testing.T) {
-
-	fmt.Printf("%-20s|\n", "d1 [varchar]:")
-	fmt.Printf("%-16s|\n", "中文字段1 [varchar]:")
-
-	var err error
-	simpleDB, gormDB, err = simpledb.NewMySQLGorm("test:Test123$@tcp(127.0.0.1:3306)/test")
-	if err != nil {
-		t.Fatal(err)
-	}
-
-	err = build()
-	if err != nil {
-		t.Fatal(err)
-	}
-
-	ctx, cancel := context.WithTimeout(context.Background(), time.Second*10)
+func TestExplore(t *testing.T) {
+	ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
 	defer cancel()
 
-	as, err := Explore(ctx, Source{Name: "diff", DB: simpleDB})
+	result, err := Explore(ctx, Source{Name: "diff", DB: simpleDB})
 	if err != nil {
-		t.Fatal(err)
+		t.Fatalf("Explore: %v", err)
 	}
 
-	for _, s := range as.ToStrings() {
-		fmt.Println(s)
+	if result.Table.Name != "diff" {
+		t.Errorf("Table.Name = %q, want %q", result.Table.Name, "diff")
+	}
+	if result.Table.RowCount != 7 {
+		t.Errorf("Table.RowCount = %d, want 7", result.Table.RowCount)
 	}
 
-	d, err := CompareTables(ctx, Source{
-		Name: "diff",
-		DB:   simpleDB,
-	}, Source{
-		Name: "diff_copy",
-		DB:   simpleDB,
-	})
-	if err != nil {
-		t.Fatal(err)
+	// should have 6 columns: id, i, s, s_null, d1, 中文字段1
+	wantFields := []string{"id", "i", "s", "s_null", "d1", "中文字段1"}
+	if len(result.FieldNames) != len(wantFields) {
+		t.Fatalf("FieldNames len = %d, want %d", len(result.FieldNames), len(wantFields))
+	}
+	for k, fn := range wantFields {
+		if result.FieldNames[k] != fn {
+			t.Errorf("FieldNames[%d] = %q, want %q", k, result.FieldNames[k], fn)
+		}
 	}
 
-	fmt.Println(strings.Join(d.Differences(), "\n"))
+	for _, line := range result.ToStrings() {
+		fmt.Println(line)
+	}
 }
 
-func build() error {
-	ctx, cancel := context.WithTimeout(context.Background(), time.Second*10)
+func TestCompareTables(t *testing.T) {
+	ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
 	defer cancel()
 
-	err := simpleDB.Drop(ctx, "diff")
-	if err != nil {
-		return err
-	}
-
-	err = simpleDB.Drop(ctx, "diff_copy")
-	if err != nil {
-		return err
-	}
-
-	sql := "CREATE TABLE IF NOT EXISTS `%s` (" +
-		"`id` int(11) unsigned NOT NULL AUTO_INCREMENT," +
-		"`i` int(11) NOT NULL DEFAULT '0'," +
-		"`s` varchar(20) NOT NULL DEFAULT ''," +
-		"`s_null` varchar(20) DEFAULT NULL," +
-		"`d1` varchar(20) DEFAULT NULL," +
-		"`中文字段1` varchar(20) DEFAULT NULL," +
-		"PRIMARY KEY (`id`)" +
-		") ENGINE=MyISAM DEFAULT CHARSET=utf8mb4;"
-
-	err = gormDB.Exec(fmt.Sprintf(sql, "diff")).Error
-	if err != nil {
-		return err
-	}
-
-	sql = "CREATE TABLE IF NOT EXISTS `%s` (" +
-		"`id` int(11) unsigned NOT NULL AUTO_INCREMENT," +
-		"`i` int(11) NOT NULL DEFAULT '0'," +
-		"`s` varchar(20) NOT NULL DEFAULT ''," +
-		"`s_null` varchar(20) DEFAULT NULL," +
-		"`d2` varchar(20) DEFAULT NULL," +
-		"`中文字段1` varchar(20) DEFAULT NULL," +
-		"PRIMARY KEY (`id`)" +
-		") ENGINE=MyISAM DEFAULT CHARSET=utf8mb4;"
-
-	err = gormDB.Exec(fmt.Sprintf(sql, "diff_copy")).Error
-	if err != nil {
-		return err
-	}
-
-	err = simpleDB.BulkInsertFromSliceSlice(ctx,
-		"diff",
-		[]string{"i", "s", "s_null", "d1"},
-		[][]any{
-			{0, "", nil, "nil"},
-			{1, "1", "", ""},
-			{2, "2", "1", "1"},
-			{3, "3", "2", "2"},
-			{4, "4", "3", "3"},
-			{4, "4", "3", "3"},
-			{4, "4", "3", "3"},
-		},
-		100,
+	differ, err := CompareTables(ctx,
+		Source{Name: "diff", DB: simpleDB},
+		Source{Name: "diff_copy", DB: simpleDB},
 	)
 	if err != nil {
-		return err
+		t.Fatalf("CompareTables: %v", err)
 	}
 
-	err = simpleDB.BulkInsertFromSliceSlice(ctx,
-		"diff_copy",
-		[]string{"i", "s", "s_null", "d2"},
-		[][]any{
-			{0, "", nil, nil},
-			{0, "", nil, nil},
-			{1, "1", "", ""},
-			{2, "2", "1", "1"},
-			{3, "3", "2", "2"},
-			{4, "4", "3", "3"},
-			{4, "4", "3", "3"},
-		},
-		100,
-	)
-	if err != nil {
-		return err
+	// tables have differences (different columns d1 vs d2, different data)
+	if differ.IsOK() {
+		t.Error("IsOK = true, want false for tables with differences")
 	}
 
-	return nil
+	diffs := differ.Differences()
+	if len(diffs) == 0 {
+		t.Error("Differences returned empty slice")
+	}
+
+	diffText := strings.Join(diffs, "\n")
+	fmt.Println(diffText)
+
+	// d1 exists only in left (diff), d2 exists only in right (diff_copy)
+	if !strings.Contains(diffText, "d1") {
+		t.Error("expected d1 in differences (column only in left)")
+	}
+	if !strings.Contains(diffText, "d2") {
+		t.Error("expected d2 in differences (column only in right)")
+	}
 }

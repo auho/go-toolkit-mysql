@@ -1,5 +1,7 @@
 package schema
 
+// FieldTypeToDataType maps a MySQL field type to its coarse DataType category.
+// Unrecognised types return DataTypeUnknown.
 func FieldTypeToDataType(ft FieldType) DataType {
 	switch ft {
 	case FieldTypeTinyint, FieldTypeSmallint, FieldTypeMediumint, FieldTypeInt, FieldTypeInteger, FieldTypeBigint, FieldTypeBit:
