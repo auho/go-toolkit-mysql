@@ -33,7 +33,7 @@ func TestTableProfile(t *testing.T) {
 	ctx, cancel := context.WithTimeout(context.Background(), time.Second*10)
 	defer cancel()
 
-	as, err := Explore(ctx, simpleDB, "diff")
+	as, err := Explore(ctx, Source{Name: "diff", DB: simpleDB})
 	if err != nil {
 		t.Fatal(err)
 	}

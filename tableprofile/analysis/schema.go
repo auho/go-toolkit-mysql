@@ -8,3 +8,11 @@ type Table struct {
 	schema.Table
 	RowCount int
 }
+
+type Column struct {
+	schema.Column
+	RowCount int
+	Distinct int
+	Empty    int
+	Null     int
+}
