@@ -4,7 +4,7 @@ import "github.com/auho/go-toolkit-mysql/schema"
 
 type Column struct {
 	schema.Column
-	Amount   int
+	RowCount   int
 	Distinct int
 	Empty    int
 	Null     int

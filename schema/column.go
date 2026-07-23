@@ -22,13 +22,13 @@ type ColumnDisplay struct {
 }
 
 func NewColumnDisplay(c Column) ColumnDisplay {
-	cs := ColumnDisplay{
+	display := ColumnDisplay{
 		Column: c,
 	}
 
-	cs.calculateDisplayWidth()
+	display.calculateDisplayWidth()
 
-	return cs
+	return display
 }
 
 func (c *ColumnDisplay) calculateDisplayWidth() {
@@ -44,26 +44,26 @@ func (c *ColumnDisplay) calculateDisplayWidth() {
 type Columns []Column
 
 func NewColumnsFromSimpleDB(columns []schema.Column) Columns {
-	var cs Columns
+	var cols Columns
 	for _, c := range columns {
 		ft := FieldType(strings.ToLower(c.FieldType))
-		nc := Column{
+		col := Column{
 			Name:      c.Name,
 			FieldType: ft,
 			DataType:  FieldTypeToDataType(ft),
 		}
 
-		cs = append(cs, nc)
+		cols = append(cols, col)
 	}
 
-	return cs
+	return cols
 }
 
 func (c Columns) ToColumnDisplay() []ColumnDisplay {
-	var cs []ColumnDisplay
+	var displays []ColumnDisplay
 	for _, c := range c {
-		cs = append(cs, NewColumnDisplay(c))
+		displays = append(displays, NewColumnDisplay(c))
 	}
 
-	return cs
+	return displays
 }

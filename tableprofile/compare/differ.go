@@ -1,14 +1,14 @@
-package diff
+package compare
 
 import (
 	"fmt"
 
-	"github.com/auho/go-toolkit-mysql/datarow/insight/analysis"
+	"github.com/auho/go-toolkit-mysql/tableprofile/analysis"
 )
 
-func Diff(left, right *analysis.Analysis) *Differ {
+func Diff(left, right *analysis.Result) *Differ {
 	d := &Differ{}
-	d.diff(left, right)
+	d.run(left, right)
 
 	return d
 }
@@ -26,7 +26,7 @@ func (d *Differ) Differences() []string {
 	return d.results
 }
 
-func (d *Differ) diff(left, right *analysis.Analysis) {
+func (d *Differ) run(left, right *analysis.Result) {
 	d.ok = true
 
 	var results []string
@@ -40,10 +40,10 @@ func (d *Differ) diff(left, right *analysis.Analysis) {
 
 	// table name and amount
 	title := fmt.Sprintf("table[%s:%s] amount", left.Table.Name, right.Table.Name)
-	if left.Table.Amount == right.Table.Amount {
-		results = append(results, d.success(fmt.Sprintf("%s: %d", title, left.Table.Amount)))
+	if left.Table.RowCount == right.Table.RowCount {
+		results = append(results, d.success(fmt.Sprintf("%s: %d", title, left.Table.RowCount)))
 	} else {
-		results = append(results, d.failure(fmt.Sprintf("%s[%d != %d]", title, left.Table.Amount, right.Table.Amount)))
+		results = append(results, d.failure(fmt.Sprintf("%s[%d != %d]", title, left.Table.RowCount, right.Table.RowCount)))
 	}
 
 	// loop left field
@@ -55,10 +55,10 @@ func (d *Differ) diff(left, right *analysis.Analysis) {
 
 		if rightColumn, ok := right.Columns[leftColumn.Name]; ok {
 			// compare amount
-			if leftColumn.Amount == rightColumn.Amount {
-				results = append(results, d.success(fmt.Sprintf("%s amount: %d", title, leftColumn.Amount)))
+			if leftColumn.RowCount == rightColumn.RowCount {
+				results = append(results, d.success(fmt.Sprintf("%s amount: %d", title, leftColumn.RowCount)))
 			} else {
-				results = append(results, d.failure(fmt.Sprintf("%s amount: [%d != %d]", title, leftColumn.Amount, rightColumn.Amount)))
+				results = append(results, d.failure(fmt.Sprintf("%s amount: [%d != %d]", title, leftColumn.RowCount, rightColumn.RowCount)))
 			}
 
 			// compare distinct
@@ -78,7 +78,7 @@ func (d *Differ) diff(left, right *analysis.Analysis) {
 
 		} else {
 			// in left, not in right
-			results = append(results, d.onlyInLeft(fmt.Sprintf("%s amount: [%d != 0]", title, leftColumn.Amount)))
+			results = append(results, d.onlyInLeft(fmt.Sprintf("%s amount: [%d != 0]", title, leftColumn.RowCount)))
 		}
 	}
 
@@ -91,7 +91,7 @@ func (d *Differ) diff(left, right *analysis.Analysis) {
 
 		// not in left, in right
 		if _, ok := left.Columns[rightColumn.Name]; !ok {
-			results = append(results, d.onlyInRight(fmt.Sprintf("%s amount: [0 != %d]", title, rightColumn.Amount)))
+			results = append(results, d.onlyInRight(fmt.Sprintf("%s amount: [0 != %d]", title, rightColumn.RowCount)))
 		}
 	}
 

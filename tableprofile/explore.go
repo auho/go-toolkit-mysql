@@ -1,4 +1,4 @@
-package insight
+package tableprofile
 
 import (
 	"context"
@@ -8,66 +8,60 @@ import (
 	"time"
 
 	simpledb "github.com/auho/go-simple-db/v3"
-	"github.com/auho/go-toolkit-mysql/datarow/insight/analysis"
 	"github.com/auho/go-toolkit-mysql/schema"
+	"github.com/auho/go-toolkit-mysql/tableprofile/analysis"
 )
 
-func Explore(ctx context.Context, db *simpledb.SimpleDB, table string) (*analysis.Analysis, error) {
-	return (&Insight{}).Explore(ctx, db, table)
+func Explore(ctx context.Context, db *simpledb.SimpleDB, table string) (*analysis.Result, error) {
+	return analyze(ctx, db, table)
 }
 
-type Insight struct{}
-
-func (i *Insight) Explore(ctx context.Context, db *simpledb.SimpleDB, table string) (*analysis.Analysis, error) {
-	return i.analyze(ctx, db, table)
-}
-
-func (i *Insight) analyze(ctx context.Context, db *simpledb.SimpleDB, table string) (*analysis.Analysis, error) {
+func analyze(ctx context.Context, db *simpledb.SimpleDB, table string) (*analysis.Result, error) {
 	dbColumns, err := db.GetTableColumnsSchema(ctx, table)
 	if err != nil {
 		return nil, err
 	}
 
-	tableAnalysis, err := i.analyzeTable(db, table)
+	tableAnalysis, err := analyzeTable(db, table)
 	if err != nil {
 		return nil, err
 	}
 
 	columnsSchema := schema.NewColumnsFromSimpleDB(dbColumns)
-	columnsAnalysis, err := i.analyzeColumns(db, tableAnalysis, columnsSchema)
+	columnsAnalysis, err := analyzeColumns(db, tableAnalysis, columnsSchema)
 	if err != nil {
 		return nil, err
 	}
-	a := analysis.NewAnalysis()
-	a.Table = tableAnalysis
+	r := analysis.NewResult()
+	r.Table = tableAnalysis
 
 	for _, columnAnalysis := range columnsAnalysis {
-		a.Columns[columnAnalysis.Name] = columnAnalysis
+		r.Columns[columnAnalysis.Name] = columnAnalysis
 	}
 
 	for _, c := range dbColumns {
-		a.FieldNames = append(a.FieldNames, c.Name)
+		r.FieldNames = append(r.FieldNames, c.Name)
 	}
 
-	return a, nil
+	return r, nil
 }
 
-func (i *Insight) analyzeTable(db *simpledb.SimpleDB, table string) (*analysis.Table, error) {
+func analyzeTable(db *simpledb.SimpleDB, table string) (*analysis.Table, error) {
 	ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
 	defer cancel()
 
-	amount, err := db.RowCount(ctx, table)
+	rowCount, err := db.RowCount(ctx, table)
 	if err != nil {
 		return nil, err
 	}
 
 	return &analysis.Table{
 		Table:  schema.Table{Name: table},
-		Amount: amount,
+		RowCount: rowCount,
 	}, nil
 }
 
-func (i *Insight) analyzeColumns(db *simpledb.SimpleDB, tableAnalysis *analysis.Table, columns schema.Columns) ([]analysis.Column, error) {
+func analyzeColumns(db *simpledb.SimpleDB, tableAnalysis *analysis.Table, columns schema.Columns) ([]analysis.Column, error) {
 	var fields []string
 
 	fields = append(fields, "COUNT(*) AS 'amount'")
@@ -105,19 +99,19 @@ func (i *Insight) analyzeColumns(db *simpledb.SimpleDB, tableAnalysis *analysis.
 	for _, column := range columns {
 		columnAnalysis := analysis.Column{
 			Column: column,
-			Amount: tableAnalysis.Amount,
+			RowCount: tableAnalysis.RowCount,
 		}
-		err = i.toInt(row, column.Name, "distinct", &columnAnalysis.Distinct)
+		err = toInt(row, column.Name, "distinct", &columnAnalysis.Distinct)
 		if err != nil {
 			return nil, err
 		}
 
-		err = i.toInt(row, column.Name, "empty", &columnAnalysis.Empty)
+		err = toInt(row, column.Name, "empty", &columnAnalysis.Empty)
 		if err != nil {
 			return nil, err
 		}
 
-		err = i.toInt(row, column.Name, "null", &columnAnalysis.Null)
+		err = toInt(row, column.Name, "null", &columnAnalysis.Null)
 		if err != nil {
 			return nil, err
 		}
@@ -128,7 +122,7 @@ func (i *Insight) analyzeColumns(db *simpledb.SimpleDB, tableAnalysis *analysis.
 	return columnsAnalysis, nil
 }
 
-func (i *Insight) toInt(row map[string]any, name, suffix string, value *int) error {
+func toInt(row map[string]any, name, suffix string, value *int) error {
 	if v, ok := row[name+"_"+suffix]; ok {
 		var err error
 		var n int

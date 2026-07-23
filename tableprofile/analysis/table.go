@@ -6,5 +6,5 @@ import (
 
 type Table struct {
 	schema.Table
-	Amount int
+	RowCount int
 }

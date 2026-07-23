@@ -1,4 +1,4 @@
-package insight
+package tableprofile
 
 import (
 	"context"
@@ -8,14 +8,13 @@ import (
 	"time"
 
 	simpledb "github.com/auho/go-simple-db/v3"
-	"github.com/auho/go-toolkit-mysql/datarow/insight/diff"
 	"gorm.io/gorm"
 )
 
 var simpleDB *simpledb.SimpleDB
 var gormDB *gorm.DB
 
-func TestInsight(t *testing.T) {
+func TestTableProfile(t *testing.T) {
 
 	fmt.Printf("%-20s|\n", "d1 [varchar]:")
 	fmt.Printf("%-16s|\n", "中文字段1 [varchar]:")
@@ -43,10 +42,10 @@ func TestInsight(t *testing.T) {
 		fmt.Println(s)
 	}
 
-	d, err := Diff(ctx, diff.Source{
+	d, err := CompareTables(ctx, Source{
 		Name: "diff",
 		DB:   simpleDB,
-	}, diff.Source{
+	}, Source{
 		Name: "diff_copy",
 		DB:   simpleDB,
 	})
